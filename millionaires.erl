@@ -16,7 +16,7 @@
 
 -compile([export_all]).
 
--define(MAX_VALUE, 1000).
+-define(MAX_VALUE, 10000).
 -define(BITS_N,    128).
 
 -record(m_alice,
@@ -44,6 +44,7 @@ spawn0(Who, State) ->
     show_logo(),
     spawn(
         fun() ->
+                random:seed(now()),
                 store_pid(Who, self()),
                 io:format(user, "Type \"~s:input().\" to input your wealth secretly.~n", [?MODULE]),
                 loop(Who, State)
@@ -100,8 +101,21 @@ input() ->
 
 req_wealth(Who) ->
     io:format(user, "Please input your (~s's) wealth:", [Who]),
-    S = io:get_password(),
+    S = case (catch io:get_password()) of
+        {error, _Reason} ->
+            io:format("io:get_password() failed, fall back to *UNSAFE* mode~n", []),
+            io:format("DO NOT let others see your screen.~n", []),
+            unsafe_get_s();
+        X -> X
+    end,
     list_to_integer(S).
+
+unsafe_get_s() ->
+    L = io:get_line("Please input your (~s's) wealth:"),
+    case length(L)  of
+        X when X > 1 -> lists:sublist(L, 1, X - 1);
+        _ -> unsafe_get_s()
+    end.
 
 loop(alice, State) ->
     receive
@@ -214,10 +228,10 @@ make_d_e(BLen) ->
             {E, N, D} = gen_rsa_key(P, Q),
             %io:format("{E, D, N}:~p~n", [{E, D, N}]),
             Da = fun (V) ->
-                    crypto:bytes_to_integer(crypto:mod_pow(V, D, N))
+                    mod_pow(V, D, N)
                 end,
             Ea = fun (V) ->
-                    crypto:bytes_to_integer(crypto:mod_pow(V, E, N))
+                    mod_pow(V, E, N)
                 end,
             {Da, Ea};
         _ -> make_d_e(BLen)
@@ -289,7 +303,7 @@ make_prime(K, P) ->
 
 %% make(N) -> a random integer with N bits.
 make(N) -> 
-    binary:decode_unsigned(crypto:strong_rand_bytes((N + 7) div 8)) band (1 bsl N - 1).
+    decode_unsigned_big(strong_rand_bytes((N + 7) div 8)) band (1 bsl N - 1).
 
 %% Fermat's little theorem says that if 
 %% N is a prime and if A < N then
@@ -308,7 +322,7 @@ is_prime(Ntest, N, Len) ->
     K = random:uniform(Len),
     %% A is a random number less than N 
     A = make(K),
-    case crypto:bytes_to_integer(crypto:mod_pow(A,N,N)) of
+    case mod_pow(A,N,N) of
 		A -> is_prime(Ntest-1,N,Len);
 		_T -> 
             false
@@ -368,3 +382,39 @@ cpu_num() ->
         N when is_integer(N) and (N > 0) -> N;
         _ -> 1
     end.
+
+mod_pow(Base, Expo, Modulus) ->
+    mod_pow0(Base rem Modulus, Expo, Modulus, 1).
+
+mod_pow0(Base, Expo, Modulus, Result) when Expo > 0 ->
+    Res10 = case Expo rem 2 of
+        1 -> 
+            (Result * Base) rem Modulus;
+        _ -> Result
+    end,
+    mod_pow0((Base * Base) rem Modulus, Expo bsr 1, Modulus, Res10);
+mod_pow0(_Base, _Expo, _Modulus, Result) -> Result.
+
+decode_unsigned_big(Bin) ->
+    decode_unsigned_big(Bin, 0).
+
+decode_unsigned_big(<<>>, Acc) -> Acc;
+decode_unsigned_big(<<B, Bin/binary>>, Acc) ->
+    decode_unsigned_big(Bin, (Acc bsl 8) + B).
+
+strong_rand_bytes(N) ->
+    case (catch crypto:strong_rand_bytes(N)) of
+        Bin when is_binary(Bin) ->
+            Bin;
+        _ ->
+            case file:open("/dev/urandom", [read, binary]) of
+                {ok, Pid} ->
+                    {ok, B} = file:read(Pid, N),
+                    file:close(Pid),
+                    B;
+                _ ->
+                    list_to_binary([random:uniform(255) || _I <- lists:seq(1, N)])
+            end
+    end.
+
+
