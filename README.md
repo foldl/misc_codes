@@ -8,8 +8,9 @@ An implementation of Yao's solution to the [Millionaires' Problem](http://en.wik
 
 Usage:
 
-1. Start two nodes.
-1. On the node that has more computing power (this is named alice): millionaires:connect(node of bob).
+1. Start two nodes;
+1. Synchronize their cookies, for example by using erlang:set\_cookie(node(), 'your cookie');
+1. On the node that has more computing power (this is named alice): millionaires:connect(node name of bob);
 1. Input wealth on each node by millionaires:input(). (io:get\_password() is used here)
 
 Note:

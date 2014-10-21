@@ -110,8 +110,13 @@ req_wealth(Who) ->
     end,
     list_to_integer(S).
 
+% naive, but acceptable
+clear_screen() ->
+    io:format([10 || _I <- lists:seq(0,1000)]).
+
 unsafe_get_s() ->
     L = io:get_line("Please input your (~s's) wealth:"),
+    clear_screen(),
     case length(L)  of
         X when X > 1 -> lists:sublist(L, 1, X - 1);
         _ -> unsafe_get_s()
@@ -200,7 +205,7 @@ show_result(R) ->
         _ -> {"", ""}
     end,
     io:format(user, "~n================================================", []),
-    io:format(user, "~nWealth comparison result: Alice~s ~s Bob~s", [MeAlice, R, MeBob]),
+    io:format(user, "~nWealth comparison result: Alice~s ~s Bob~s      ", [MeAlice, R, MeBob]),
     io:format(user, "~n================================================~n", []).
 
 try_kj1(Msg, #m_bob{j = J, 'Ea' = Ea} = State) when is_number(J) and is_function(Ea) ->
@@ -407,14 +412,22 @@ strong_rand_bytes(N) ->
         Bin when is_binary(Bin) ->
             Bin;
         _ ->
-            case file:open("/dev/urandom", [read, binary]) of
-                {ok, Pid} ->
-                    {ok, B} = file:read(Pid, N),
-                    file:close(Pid),
-                    B;
-                _ ->
+            Cmd = "dd if=/dev/urandom bs=1 count="  ++ integer_to_list(N) ++ " 2>/dev/null",
+            case {os:cmd(Cmd), os:cmd(Cmd)} of
+                {X, Y} when X /= Y ->
+                    list_to_binary(X);
+                _ ->                    
                     list_to_binary([random:uniform(255) || _I <- lists:seq(1, N)])
             end
+            % why this file can't be opened, eisdir?
+            %case file:open("/dev/urandom", [read, binary]) of
+            %    {ok, Pid} ->
+            %        {ok, B} = file:read(Pid, N),
+            %        file:close(Pid),
+            %        B;
+            %    _ ->
+            %        list_to_binary([random:uniform(255) || _I <- lists:seq(1, N)])
+            %end
     end.
 
 
