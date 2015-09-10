@@ -1,9 +1,11 @@
 %%% File    : vftpd.erl
+%%% Author  : Zhengji Li <foldl@outlook.com>
 %%% Purpose : "Virutal" FTP SERVER (RFC 765) (must update to 959)
 
-%%% Based on ftpd.erl by <tony@RIOJA>
+%%% Based on ftpd.erl developed by <tony@RIOJA>
 
 -module(vftpd).
+-author('zhengji.li@gmail.com').
 
 -define(LARGE_FILE_SIZE, (3 * 1024 * 1024 * 1024)).
 
@@ -16,8 +18,6 @@
 -include_lib("kernel/include/file.hrl").
 
 -define(FTPD_PORT, 21).
--define(FTPD_MAX_CONN, 40).
--define(FTPD_LOGFILE, "vftpd.log").
 
 %% ftpd state record
 -record(state,
@@ -379,7 +379,7 @@ stru(Arg, S, St) ->
     rsend(S, 200, "new file structure " ++ atom_to_list(Stru)),
     St#cstate{structure = Stru}.    
 
-syst(Arg, S, St) ->
+syst(_Arg, S, St) ->
     rsend(S,200,"unix"),
     St.
 
