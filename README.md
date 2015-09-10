@@ -29,10 +29,16 @@ All threads are downloading the same file, hoping to reduce disk I/O load on the
 
 Compatible with FileZilla Server, Serv-U. (Others are not tested)
 
-## vftp.erl
+## vftpd.erl
 
 Then, why bother to use a *true* FTP server?
 
 vftp.erl is a pseudo-ftp server that features no file I/O, zero configuration, highly concurrent. 
 
 Acknowledge: Based on ftpd.erl by [tony](https://github.com/tonyrog)
+
+## ftpd.erl
+
+This is [tony's](https://github.com/tonyrog) ftpd.erl with some updates to fix warnings, and UTF-8 is used in 
+file name (see RFC 2640 "Internationalization of the File Transfer Protocol").
+
